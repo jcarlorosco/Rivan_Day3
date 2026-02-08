@@ -2051,12 +2051,12 @@ conf t
 
 | Legend | Routing Protocol | Administrative Distance | Metric |
 | ---    | ---              | ---                     | ---    |
-| C      | Connected        |                         |        |
-| S      | Static           |                         |        |
-| D      | EIGRP            |                         |        |
-| D EX   | External EIGRP   |                         |        |
-| O      | OSPF             |                         |        |
-| O E2   | External T5 OSPF |                         |        |
+| C      | Connected        | 0                       |        |
+| S      | Static           | 1                       |        |
+| D      | EIGRP            | 90                      |        |
+| D EX   | External EIGRP   | 170                     |        |
+| O      | OSPF             | 110                     |        |
+| O E2   | External T5 OSPF | 110                     |        |
 
 ~~~
 !@R4, D1, R3
@@ -2708,7 +2708,7 @@ conf t
 
 ### Dynamic NAT
 ~~~
-!@R1
+!@R1  
 conf t
  ip nat pool NATPOOL 208.8.8.10 208.8.8.20 netmask 255.255.255.0
  ip nat inside source list 1 pool NATPOOL
