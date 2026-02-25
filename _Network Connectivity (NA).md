@@ -318,6 +318,7 @@ What are the steps to configure DHCP?
 !@D1
 conf t
  ip dhcp excluded-address 10.2.1.1 10.2.1.100
+ ip dhcp excluded-address 10.2.1.199 10.2.1.254
  ip dhcp pool MGMTPOOL.COM
   network 10.2.1.0 255.255.255.0
   default-router 10.2.1.254
@@ -751,6 +752,26 @@ conf t
 |                  | 10.1.100.79 /18   |
 |                  | 172.16.145.18 /20 |
 |                  | 192.168.1.205 /30 | 
+
+<br>
+
+~~~
+!@R1
+show ip route static
+conf t
+ no ip route 10.1.1.5 255.255.255.255 10.1.1.2
+ no ip route 10.1.1.6 255.255.255.255 10.1.1.2
+ end
+show ip route static
+~~~
+
+~~~
+!@R1
+conf t
+ ip route 10.1.1.4 255.255.255.252 10.1.1.2
+ end
+show ip route static
+~~~
 
 <br>
 <br>
@@ -2573,13 +2594,6 @@ show ip route
 &nbsp;
 
 ### NAT
-~~~
-INSIDE GLOBAL     INSIDE LOCAL         OUTSIDE LOCAL      OUTSIDE GLOBAL
-~~~
-
-<br>
-<br>
-
 Step 1: Define INSIDE and OUTSIDE
 
 ~~~
@@ -2616,9 +2630,9 @@ Step 3: Configure desired NAT
 ~~~
 !@R1
 conf t
- ip nat inside source static 10.1.1.2 209.9.9.2 
- ip nat inside source static 10.1.1.6 209.9.9.3
- ip nat inside source static 10.1.1.10 209.9.9.4
+ ip nat inside source static 10.1.1.2 208.8.8.10 
+ ip nat inside source static 10.1.1.6 208.8.8.20
+ ip nat inside source static 10.1.1.10 208.8.8.30
  end
 show ip nat translations
 ~~~
@@ -2636,18 +2650,9 @@ ping 8.8.8.8
 
 <br>
 
-Can all of them ping 8.8.8.8? If not, explain why.
-
-<br>
-
 ~~~
-!@R1
-clear ip nat translation *
-conf t
- no ip nat inside source static 10.1.1.6 209.9.9.3
- ip nat inside source static 10.1.1.6 209.9.9.5
- end
-show ip nat translations
+INSIDE GLOBAL     INSIDE LOCAL         OUTSIDE LOCAL      OUTSIDE GLOBAL
+
 ~~~
 
 <br>
@@ -2705,12 +2710,11 @@ conf t
 ---
 &nbsp;
 
-
 ### Dynamic NAT
 ~~~
 !@R1  
 conf t
- ip nat pool NATPOOL 208.8.8.10 208.8.8.20 netmask 255.255.255.0
+ ip nat pool NATPOOL 209.9.9.10 209.9.9.20 netmask 255.255.255.0
  ip nat inside source list 1 pool NATPOOL
  end
 ~~~
@@ -2758,7 +2762,12 @@ conf t
 ---
 &nbsp;
 
-### 🎯 Exercise 20: Configure P1, P2, S1, & S2 to successfully ping 8.8.8.8
+### 🎯 Exercise 20: Configure P1, P2, S1, & S2 to successfully ping 8.8.8.8 using a static NAT assignment.
+
+P1 = 207.7.7.201
+P2 = 207.7.7.202
+S1 = 209.9.9.201
+S2 = 209.9.9.202
 
 <br>
 <br>
@@ -2798,178 +2807,522 @@ conf t
 ---
 &nbsp;
 
-### Route Maps
+### ANSWER
+
+<details>
+<summary>Show Answer</summary>
+
 ~~~
+!@R1
+clear ip nat translations *
 conf t
- access-list 1 permit 10.0.0.0 0.255.255.255
- access-list 1 permit 172.16.0.0 0.15.255.255
- access-list 1 permit 192.168.0.0 0.0.255.255
- !
- route-map NAT_ISP1 permit 10
-  match ip address 1
-  match interface e1/1
- route-map NAT_ISP2 permit 10
-  match ip address 1
-  match interface e1/2
- route-map NAT_ISP3 permit 10
-  match ip address 1
-  match interface e1/3
- !
- ip nat pool POOL7 207.7.7.10 207.7.7.254 netmask 255.255.255.0  
- ip nat pool POOL8 208.8.8.10 208.8.8.254 netmask 255.255.255.0
- ip nat pool POOL9 209.9.9.10 209.9.9.254 netmask 255.255.255.0
- ip nat inside source route-map NAT_ISP1 pool POOL8 overload
- ip nat inside source route-map NAT_ISP2 pool POOL7 overload
- ip nat inside source route-map NAT_ISP3 pool POOL9 overload
+ ip nat inside source static [P1 IP] 207.7.7.201
+ ip nat inside source static [P2 IP] 207.7.7.202
+ ip nat inside source static [S1 IP] 209.9.9.201
+ ip nat inside source static [S2 IP] 209.9.9.202
  end
 ~~~
 
+</details>
 
 
+<br>
+<br>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-IPv6
-
-Does your device support IPv6?
-
-
-What is a valid IPv6 address?
-
-
-IPv6 compression rules
-
-1. All zeroes on the left are ommitted.
-
-:00a0:  >   :a0:
-
-2. Subsequent zeroes turn into double colon.
-
-:0000:0000:0000:00a0:  >  ::a0:
-
-3. When there are two subsequent zeroes, the one with more zeroes gets turned into :
-while the other zeroes becom :0:
-
-:0000:0000:00a0:0000:0000:0000:  >  :0:0:a0::
-
-4. When subsequent zeroes match on both sides, the one on the left turns into double colon.
-
-:0000:0000:00a0:0000:0000:  >  ::a0:0:0:
-
-
-Exercise 21: Compress IPv6 address
-
-1. 000a:000c:0000:0000:0000:0000:0000:0000/64 =
-	
-2. 0000:0000:0000:0000:0000:0000:0000:0000/0 = 
-			
-3. fe80:0000:0000:0000:000a:0000:0000:000f/64 =
-	
-4. 2002:6500:0000:3000:0000:0000:0000:0000/64 = 
-	
-5. 0000:0000:0000:0000:0000:0000:0000:0001/128 = 
-	
-6. ff00:0000:0000:beef:a00a:0aa0:0000:0000/8 = 
-
-
+&nbsp;
 ---
+&nbsp;
 
+## IPv6
+*What is a valid IPv6 address?*
 
-IPv6 subnetting
+<br>
 
+### IPv6 compression rules  
 
-8  4  2   1    8  4  2   1     8  4  2   1    8  4  2   1 
+__1. All zeroes on the left are ommitted.__  
 
+` :00a0:  >   :a0: `  
 
-IPV6 SUBNETTING (HOSTS):
-fec0:aabb:fafa:dada::/64 subnet for 48 users:
-Convert:
-S:
-Ipasok:
+<br>
 
+__2. Subsequent zeroes turn into double colon.__  
 
+` :0000:0000:0000:00a0:  >  ::a0: `
 
-IPV6 SUBNETTING (SUBNETS):
-fec0:aabb:fafa:dada::/64 subnet to 22 offices/subnets:
-Convert:  22 -> 5bits
-Add: /64 + /5 = /69
-Ipasok:
+<br>
 
+### 3. When there are two subsequent zeroes, the one with more zeroes gets turned into :
+while the other zeroes becom :0:  
 
+` :0000:0000:00a0:0000:0000:0000:  >  :0:0:a0:: `
 
+<br>
 
+### 4. When subsequent zeroes match on both sides, the one on the left turns into double colon.
 
+` :0000:0000:00a0:0000:0000:  >  ::a0:0:0: `  
 
+<br>
+<br>
 
+&nbsp;
 ---
+&nbsp;
+
+### 🎯 Exercise 21: Compress IPv6 address
+
+1. 000a:000c:0000:0000:0000:0000:0000:0000/64
+     =
+
+<br>
+
+3. 0000:0000:0000:0000:0000:0000:0000:0000/0
+     = 
+
+<br>
+
+5. fe80:0000:0000:0000:000a:0000:0000:000f/64
+     =
+
+<br>
+
+7. 2002:6500:0000:3000:0000:0000:0000:0000/64
+     = 
+
+<br>
+
+9. 0000:0000:0000:0000:0000:0000:0000:0001/128
+     = 
+
+<br>
+
+11. ff00:0000:0000:beef:a00a:0aa0:0000:0000/8
+     = 
 
 
-IPv6 Static & Default Routing
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+### IPv6 subnetting
+
+` 8i  4i  2i   1i    8i  4i  2i   1i     8i  4i  2i   1i    8i  4i  2i   1i `
+
+<br>
+<br>
+
+__Determine where the slash is located__
+
+/64 = (Hextet, Hexadecimal, i)  
+/65 = (Hextet, Hexadecimal, i)  
+/72 = (Hextet, Hexadecimal, i)  
+
+<br>
+
+/120 = (Hextet, Hexadecimal, i)  
+/27  = (Hextet, Hexadecimal, i)  
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+## IPV6 SUBNETTING (HOSTS):
+
+### 1. Design an IPv6 network for 48 users using the available IPv6 address space of fec0:aabb:fafa:dada::/64
+
+~~~
+C:  
+S: 
+I: 
+
+Compressed Version: 
+~~~
+
+|                      |                             |
+| ---                  | ---                         |
+| Network/Anycast:     |                             |
+| First Valid:         |                             |
+| Last Valid:          |                             |
+|                      |                             |
+| Not Network:         |                             |
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+### ANSWER
+
+<details>
+<summary>Show Answer</summary>
+
+~~~
+C: 48 = 6 bits
+S: /128 - 6 bits = /122 (8th, 3rd, 4i)
+I:
+  1st Subnet: fec0:aabb:fafa:dada:0000:0000:0000:0000/122
+  2nd Subnet: fec0:aabb:fafa:dada:0000:0000:0000:0040/122
+
+Compressed Version: fec0:aabb:fafa:dada:0000:0000:0000:0040/122
+~~~
+
+<br>
+
+|                      |                             |
+| ---                  | ---                         |
+| Network/Anycast:     | fec0:aabb:fafa:dada::00/122 |
+| First Valid:         | fec0:aabb:fafa:dada::01/122 |
+| Last Valid:          | fec0:aabb:fafa:dada::3F/122 |
+|                      |                             |
+| Not Network:         | fec0:aabb:fafa:dada::40/122 |
+
+</details>
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+### 2. Design an IPv6 network for 780 users using the available IPv6 address space of 2001:db8:b:efe:1::/64
+
+~~~
+C:  
+S: 
+I: 
+
+Compressed Version: 
+~~~
+
+|                      |                             |
+| ---                  | ---                         |
+| Network/Anycast:     |                             |
+| First Valid:         |                             |
+| Last Valid:          |                             |
+|                      |                             |
+| Not Network:         |                             |
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+### ANSWER
+
+<details>
+<summary>Show Answer</summary>
+
+~~~
+C: 780 = 10 bits
+S: /128 - 10 bits = /118 (8th, 2nd, 4i)
+I:
+  1st Subnet: 2001:0db8:000b:0efe:0001:0000:0000:0000:/118
+  2nd Subnet: 2001:0db8:000b:0efe:0001:0000:0000:0400:/118
+
+Compressed Version: 2001:db8:b:efe:1::/118
+~~~
+
+<br>
+
+|                      |                           |
+| ---                  | ---                       |
+| Network/Anycast:     | 2001:db8:b:efe:1::/118    |
+| First Valid:         | 2001:db8:b:efe:1::1/118   |
+| Last Non-Anycast:    | 2001:db8:b:efe:1::37F/118 |
+| First Anycast:       | 2001:db8:b:efe:1::380/118 |
+| Last Anycast:        | 2001:db8:b:efe:1::3FF/118 |
+|                      |                           |
+| Not Network:         | 2001:db8:b:efe:1::400/118 |
+
+</details>
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+## IPV6 SUBNETTING (SUBNETS):
+
+### 1. Subnet for 16 sites using 2001:db8:1:20::/64  Determine the First Subnet  
+
+~~~
+C:
+A:
+I:
 
 
 
-IPv6 Transition Technology
+Compressed Version: 
+~~~
+
+<br>
+
+|                      |                                      |
+| ---                  | ---                                  |
+| Network/Anycast:     |                                      |
+| First Valid:         |                                      |
+| Last Valid:          |                                      |
+|                      |                                      |
+| Not Network:         |                                      |
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+### ANSWER
+
+<details>
+<summary>Show Answer</summary>
+
+~~~
+C: 16 = 5 bits
+A: /64 + 5 bits = /69 (5th, 2nd, 8i)
+I:
+  1st Subnet: 2001:0db8:0001:0020:0000:0000:0000:0000 /69
+  2nd Subnet: 2001:0db8:0001:0020:0800:0000:0000:0000 /69
+
+Compressed Version: 2001:db8:1:20::/69
+~~~
+
+<br>
+
+|                      |                                      |
+| ---                  | ---                                  |
+| Network/Anycast:     | 2001:db8:1:20::/69                   |
+| First Valid:         | 2001:db8:1:20::1/69                  |
+| Last Non-Anycast:    | 2001:db8:1:20:7FF:FFFF:FFFF:FF7F /69 |
+| First Anycast:       | 2001:db8:1:20:7FF:FFFF:FFFF:FF80 /69 |
+| Last Anycast:        | 2001:db8:1:20:7FF:FFFF:FFFF:FFFF /69 |
+|                      |                                      |
+| Not Network:         | 2001:db8:1:20:800::/69               |
+
+</details>
+
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+### 2. Subnet for 78 sites using 2001:db8:2:5::/98  Determine the Third Subnet
+
+~~~
+C:
+A:
+I:
 
 
 
-IPv6 autoconfig
+Compressed Version: 
+~~~
 
+<br>
+
+|                      |                                      |
+| ---                  | ---                                  |
+| Network/Anycast:     |                                      |
+| First Valid:         |                                      |
+| Last Valid:          |                                      |
+|                      |                                      |
+| Not Network:         |                                      |
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+### ANSWER
+
+<details>
+<summary>Show Answer</summary>
+
+~~~
+C: 78 = 7 bits
+A: /98 + 7 bits = /105 (7th, 3rd, 8i)
+I:
+  1st Subnet: 2001:0db8:0002:0005:0000:0000:0000:0000 /105
+  2nd Subnet: 2001:0db8:0002:0005:0000:0000:0080:0000 /105
+  3rd Subnet: 2001:0db8:0002:0005:0000:0000:0100:0000 /105
+  4th Subnet: 2001:0db8:0002:0005:0000:0000:0180:0000 /105
+Compressed Version: 2001:bd8:2:5::100:0/105
+~~~
+
+<br>
+
+|                      |                            |
+| ---                  | ---                        |
+| Network/Anycast:     | 2001:bd8:2:5::100:0/105    |
+| First Valid:         | 2001:bd8:2:5::100:1/105    |
+| Last Non-Anycast:    | 2001:bd8:2:5::17F:FF7F/105 |
+| First Anycast:       | 2001:bd8:2:5::17F:FF80/105 |
+| Last Anycast:        | 2001:bd8:2:5::17F:FFFF/105 |
+|                      |                            |
+| Not Network:         | 2001:bd8:2:5::180:0/105    |
+
+</details>
+
+
+<br>
+<br>
+
+&nbsp;
+---
+&nbsp;
+
+## IPV6 AUTOCONFIG vs IPV6 DHCP vs IPV6 EUI-64
+
+### IPV6 AUTOCONFIG
+SLAAC
+
+MUST BE A /64
+~~~
+
+~~~
 
 
 
